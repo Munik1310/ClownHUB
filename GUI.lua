@@ -44,14 +44,14 @@ local state = {
 
 -- Ультра-премиальная темная палитра без обводок
 local C = {
-    bg0   = Color3.fromRGB(9,   11,  15),
-    bg1   = Color3.fromRGB(18,  21,  27),
-    bg2   = Color3.fromRGB(27,  31,  39),
-    bg3   = Color3.fromRGB(40,  46,  56),
-    panel = Color3.fromRGB(15,  18,  24),
+    bg0   = Color3.fromRGB(24,  28,  36),
+    bg1   = Color3.fromRGB(34,  39,  49),
+    bg2   = Color3.fromRGB(47,  54,  66),
+    bg3   = Color3.fromRGB(64,  73,  88),
+    panel = Color3.fromRGB(29,  34,  43),
     t1    = Color3.fromRGB(255, 255, 255),
-    t2    = Color3.fromRGB(180, 180, 195),
-    t3    = Color3.fromRGB(115, 115, 130),
+    t2    = Color3.fromRGB(205, 211, 222),
+    t3    = Color3.fromRGB(157, 166, 181),
     accent = Color3.fromRGB(255, 184, 92),
     accentSoft = Color3.fromRGB(109, 78, 44),
     grn   = Color3.fromRGB(56,  210, 125),
@@ -491,7 +491,7 @@ end
 
 local function makeSwitch(parent, text, initial, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 50)
+    wrap.Size = UDim2.new(1, 0, 0, 58)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
@@ -506,7 +506,7 @@ local function makeSwitch(parent, text, initial, callback, lo)
     lbl.TextColor3 = C.t1
     lbl.Text = text
     lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 14
+    lbl.TextSize = 15
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = wrap
 
@@ -564,35 +564,35 @@ end
 
 local function makeBoxInput(parent, label, default, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 60)
+    wrap.Size = UDim2.new(1, 0, 0, 70)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
     corner(wrap, 10)
     gradient(wrap, C.bg1, C.panel, 0)
-    pad(wrap, 10, 10, 16, 16)
+    pad(wrap, 11, 11, 16, 16)
 
     local lbf = Instance.new("TextLabel")
-    lbf.Size = UDim2.new(1, 0, 0, 16)
+    lbf.Size = UDim2.new(1, 0, 0, 18)
     lbf.BackgroundTransparency = 1
     lbf.TextColor3 = C.t3
     lbf.Text = label
     lbf.Font = Enum.Font.GothamBold
-    lbf.TextSize = 11
+    lbf.TextSize = 12
     lbf.TextXAlignment = Enum.TextXAlignment.Left
     lbf.Parent = wrap
 
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 24)
-    box.Position = UDim2.new(0, 0, 0, 20)
+    box.Size = UDim2.new(1, 0, 0, 28)
+    box.Position = UDim2.new(0, 0, 0, 25)
     box.BackgroundColor3 = C.bg2
     box.BackgroundTransparency = 0
     box.BorderSizePixel = 0
     box.TextColor3 = C.t1
     box.Text = tostring(default)
     box.Font = Enum.Font.GothamBold
-    box.TextSize = 14
+    box.TextSize = 15
     box.TextXAlignment = Enum.TextXAlignment.Left
     box.Parent = wrap
     corner(box, 6)
@@ -614,7 +614,7 @@ end
 -- Встроенный удобный выпадающий список прямо в интерфейсе (без кликов по 10 раз)
 local function makeScrollDropdown(parent, label, list, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 64)
+    wrap.Size = UDim2.new(1, 0, 0, 74)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
@@ -623,37 +623,37 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     wrap.Parent = parent
     corner(wrap, 10)
     gradient(wrap, C.bg1, C.panel, 0)
-    pad(wrap, 10, 10, 16, 16)
+    pad(wrap, 11, 11, 16, 16)
 
     local lbf = Instance.new("TextLabel")
-    lbf.Size = UDim2.new(1, 0, 0, 16)
+    lbf.Size = UDim2.new(1, 0, 0, 18)
     lbf.BackgroundTransparency = 1
     lbf.TextColor3 = C.t3
     lbf.Text = label
     lbf.Font = Enum.Font.GothamBold
-    lbf.TextSize = 11
+    lbf.TextSize = 12
     lbf.TextXAlignment = Enum.TextXAlignment.Left
     lbf.Parent = wrap
 
     local valLbl = Instance.new("TextLabel")
-    valLbl.Size = UDim2.new(1, -30, 0, 24)
-    valLbl.Position = UDim2.new(0, 0, 0, 20)
+    valLbl.Size = UDim2.new(1, -30, 0, 28)
+    valLbl.Position = UDim2.new(0, 0, 0, 25)
     valLbl.BackgroundTransparency = 1
     valLbl.TextColor3 = C.t1
     valLbl.Text = cfg.selectedMob
     valLbl.Font = Enum.Font.GothamBold
-    valLbl.TextSize = 14
+    valLbl.TextSize = 15
     valLbl.TextXAlignment = Enum.TextXAlignment.Left
     valLbl.Parent = wrap
 
     local arrow = Instance.new("TextLabel")
-    arrow.Size = UDim2.new(0, 20, 0, 24)
-    arrow.Position = UDim2.new(1, -20, 0, 20)
+    arrow.Size = UDim2.new(0, 20, 0, 28)
+    arrow.Position = UDim2.new(1, -20, 0, 25)
     arrow.BackgroundTransparency = 1
     arrow.TextColor3 = C.t2
     arrow.Text = "v"
     arrow.Font = Enum.Font.GothamBold
-    arrow.TextSize = 14
+    arrow.TextSize = 15
     arrow.Parent = wrap
 
     local dropdownOpen = false
@@ -663,7 +663,7 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     dropListFrame.Position = UDim2.new(0, 0, 1, 8)
     dropListFrame.BackgroundColor3 = C.bg2
     dropListFrame.BorderSizePixel = 0
-    dropListFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 32)
+    dropListFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 34)
     dropListFrame.ScrollBarThickness = 3
     dropListFrame.Visible = false
     dropListFrame.ZIndex = 20
@@ -677,7 +677,7 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
 
     for _, itemName in ipairs(list) do
         local itemBtn = Instance.new("TextButton")
-        itemBtn.Size = UDim2.new(1, 0, 0, 32)
+        itemBtn.Size = UDim2.new(1, 0, 0, 34)
         itemBtn.BackgroundColor3 = C.bg2
         itemBtn.BackgroundTransparency = 0
         itemBtn.TextColor3 = C.t2
