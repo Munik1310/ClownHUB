@@ -17,17 +17,13 @@ print("[Cake Island PRO]: Initializing modular loader...")
 -- Modular source URLs (replace raw links with your actual GitHub raw links if hosted externally)
 -- For local/instant execution, we wrap the UI and Logic tables together.
 
-local Success, Error = pcall(function()
-    -- Here you would normally load from GitHub using loadstring(game:HttpGet("URL"))()
-    -- For demonstration, we ensure all requested features: 
-    -- 1. GitHub architecture split ready
-    -- 2. Roblox button hiding / custom draggable toggle pill
-    -- 3. Clean professional typography (No emojis, legible fonts, clean scaling)
-    -- 4. Player Info tab (Session uptime, user details, avatar frame placeholder)
-    -- 5. Scrollable / searchable dropdown list for mobs
-    -- 6. Universal character utilities (Speed, JumpPower boosts, ESP, etc.)
+-- Main.lua (Загрузчик)
+local success, errorMessage = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/GUI.luau"))()
 end)
 
-if not Success then
-    warn("[Cake Island PRO]: Failed to load modules: " .. tostring(Error))
+if not success then
+    warn("[ClownHUB]: Ошибка загрузки интерфейса: " .. tostring(errorMessage))
+else
+    print("[ClownHUB]: Интерфейс успешно запущен!")
 end
