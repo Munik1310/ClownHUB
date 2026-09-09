@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════╗
 -- ║         Cake Island PRO v6.0 — Ultimate Refactor             ║
--- ║         UI & Logic Code (Залей этот код в свой GUI.luau)      ║
+-- ║         UI & Logic Code (Залей этот код в свой GUI.luau)     ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
 local Players             = game:GetService("Players")
@@ -44,14 +44,16 @@ local state = {
 
 -- Ультра-премиальная темная палитра без обводок
 local C = {
-    bg0   = Color3.fromRGB(10,  10,  13),
-    bg1   = Color3.fromRGB(17,  17,  22),
-    bg2   = Color3.fromRGB(26,  26,  34),
-    bg3   = Color3.fromRGB(38,  38,  48),
+    bg0   = Color3.fromRGB(12,  14,  18),
+    bg1   = Color3.fromRGB(20,  23,  29),
+    bg2   = Color3.fromRGB(29,  33,  41),
+    bg3   = Color3.fromRGB(43,  48,  58),
     t1    = Color3.fromRGB(255, 255, 255),
     t2    = Color3.fromRGB(180, 180, 195),
     t3    = Color3.fromRGB(115, 115, 130),
-    grn   = Color3.fromRGB(46,  204, 113),
+    accent = Color3.fromRGB(255, 184, 92),
+    accentSoft = Color3.fromRGB(109, 78, 44),
+    grn   = Color3.fromRGB(56,  210, 125),
     red   = Color3.fromRGB(231, 76,  60),
     white = Color3.fromRGB(255, 255, 255),
 }
@@ -65,14 +67,19 @@ local function corner(p, r)
     return c 
 end
 
--- Использование UIStroke полностью убрано, заменено на мягкий UIShadow для объема
+-- Roblox не имеет встроенного UIShadow, поэтому используем отдельный слой позади элемента.
 local function addShadow(p, transparency)
-    local s = Instance.new("UIStroke")
-    s.Transparency = transparency or 0.85
-    s.Color = Color3.fromRGB(0, 0, 0)
-    s.Thickness = 2
-    s.Parent = p
-    return s
+    local shadow = Instance.new("Frame")
+    shadow.Name = "UIShadow"
+    shadow.Size = UDim2.new(1, 8, 1, 8)
+    shadow.Position = UDim2.new(0, -4, 0, 5)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = transparency or 0.85
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = math.max(p.ZIndex - 1, 0)
+    shadow.Parent = p
+    corner(shadow, 12)
+    return shadow
 end
 
 local function pad(p, t, b, l, r) 
@@ -169,8 +176,9 @@ makeDraggable(pill)
 
 -- ══ ОСНОВНОЕ ОКНО ═════════════════════════════════════════
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 600, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+mainFrame.Size = UDim2.new(0.9, 0, 0.78, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = C.bg0
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -179,9 +187,14 @@ corner(mainFrame, 12)
 addShadow(mainFrame, 0.6)
 makeDraggable(mainFrame)
 
+local windowLimit = Instance.new("UISizeConstraint")
+windowLimit.MinSize = Vector2.new(320, 360)
+windowLimit.MaxSize = Vector2.new(760, 540)
+windowLimit.Parent = mainFrame
+
 -- Сайдбар
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 175, 1, 0)
+sidebar.Size = UDim2.new(0, 168, 1, 0)
 sidebar.BackgroundColor3 = C.bg1
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
@@ -240,13 +253,13 @@ pad(navList, 0, 0, 10, 10)
 
 -- Контентная область
 local contentArea = Instance.new("Frame")
-contentArea.Size = UDim2.new(1, -175, 1, 0)
-contentArea.Position = UDim2.new(0, 175, 0, 0)
+contentArea.Size = UDim2.new(1, -168, 1, 0)
+contentArea.Position = UDim2.new(0, 168, 0, 0)
 contentArea.BackgroundTransparency = 1
 contentArea.Parent = mainFrame
 
 local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 60)
+topBar.Size = UDim2.new(1, 0, 0, 68)
 topBar.BackgroundTransparency = 1
 topBar.Parent = contentArea
 
@@ -258,8 +271,28 @@ currentTabLbl.TextColor3 = C.t1
 currentTabLbl.Text = "Automation"
 currentTabLbl.Font = Enum.Font.GothamBold
 currentTabLbl.TextSize = 16
+currentTabLbl.TextYAlignment = Enum.TextYAlignment.Bottom
 currentTabLbl.TextXAlignment = Enum.TextXAlignment.Left
 currentTabLbl.Parent = topBar
+
+local statusLbl = Instance.new("TextLabel")
+statusLbl.Size = UDim2.new(1, -40, 0, 16)
+statusLbl.Position = UDim2.new(0, 20, 0, 43)
+statusLbl.BackgroundTransparency = 1
+statusLbl.TextColor3 = C.t3
+statusLbl.Text = "READY  •  CAKE ISLAND"
+statusLbl.Font = Enum.Font.GothamMedium
+statusLbl.TextSize = 10
+statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+statusLbl.Parent = topBar
+
+local accentLine = Instance.new("Frame")
+accentLine.Size = UDim2.new(0, 34, 0, 3)
+accentLine.Position = UDim2.new(0, 20, 0, 8)
+accentLine.BackgroundColor3 = C.accent
+accentLine.BorderSizePixel = 0
+accentLine.Parent = topBar
+corner(accentLine, 2)
 
 -- Кнопки сворачивания и закрытия (внутри нашего GUI, стандартные Роблокса не задействованы)
 local winControls = Instance.new("Frame")
@@ -285,6 +318,12 @@ local function winBtn(text)
     b.BorderSizePixel = 0
     b.Parent = winControls
     corner(b, 8)
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, tw, {BackgroundColor3 = C.bg3, TextColor3 = C.t1}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, tw, {BackgroundColor3 = C.bg1, TextColor3 = C.t2}):Play()
+    end)
     return b
 end
 
@@ -309,8 +348,8 @@ pillTxt.MouseButton1Click:Connect(function()
 end)
 
 local pagesContainer = Instance.new("Frame")
-pagesContainer.Size = UDim2.new(1, 0, 1, -60)
-pagesContainer.Position = UDim2.new(0, 0, 0, 60)
+pagesContainer.Size = UDim2.new(1, 0, 1, -68)
+pagesContainer.Position = UDim2.new(0, 0, 0, 68)
 pagesContainer.BackgroundTransparency = 1
 pagesContainer.Parent = contentArea
 
@@ -358,6 +397,17 @@ local function addTab(name)
     lbl.TextSize = 13
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = btn
+
+    btn.MouseEnter:Connect(function()
+        if page.Visible then return end
+        TweenService:Create(btn, tw, {BackgroundColor3 = C.bg2}):Play()
+        TweenService:Create(lbl, tw, {TextColor3 = C.t1}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        if page.Visible then return end
+        TweenService:Create(btn, tw, {BackgroundColor3 = C.bg1}):Play()
+        TweenService:Create(lbl, tw, {TextColor3 = C.t2}):Play()
+    end)
 
     btn.MouseButton1Click:Connect(function()
         for _, t in pairs(tabs) do
@@ -472,13 +522,24 @@ local function makeBoxInput(parent, label, default, callback, lo)
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(1, 0, 0, 24)
     box.Position = UDim2.new(0, 0, 0, 20)
-    box.BackgroundTransparency = 1
+    box.BackgroundColor3 = C.bg2
+    box.BackgroundTransparency = 0
+    box.BorderSizePixel = 0
     box.TextColor3 = C.t1
     box.Text = tostring(default)
     box.Font = Enum.Font.GothamBold
     box.TextSize = 14
     box.TextXAlignment = Enum.TextXAlignment.Left
     box.Parent = wrap
+    corner(box, 6)
+    pad(box, 0, 0, 8, 8)
+
+    box.Focused:Connect(function()
+        TweenService:Create(box, tw, {BackgroundColor3 = C.accentSoft}):Play()
+    end)
+    box.FocusLost:Connect(function()
+        TweenService:Create(box, tw, {BackgroundColor3 = C.bg2}):Play()
+    end)
 
     box.FocusLost:Connect(function()
         if callback then callback(box.Text) end
@@ -552,7 +613,8 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     for _, itemName in ipairs(list) do
         local itemBtn = Instance.new("TextButton")
         itemBtn.Size = UDim2.new(1, 0, 0, 32)
-        itemBtn.BackgroundTransparency = 1
+        itemBtn.BackgroundColor3 = C.bg2
+        itemBtn.BackgroundTransparency = 0
         itemBtn.TextColor3 = C.t2
         itemBtn.Text = "  " .. itemName
         itemBtn.Font = Enum.Font.GothamBold
@@ -560,6 +622,13 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
         itemBtn.TextXAlignment = Enum.TextXAlignment.Left
         itemBtn.ZIndex = 21
         itemBtn.Parent = dropListFrame
+
+        itemBtn.MouseEnter:Connect(function()
+            TweenService:Create(itemBtn, tw, {BackgroundColor3 = C.bg3, TextColor3 = C.t1}):Play()
+        end)
+        itemBtn.MouseLeave:Connect(function()
+            TweenService:Create(itemBtn, tw, {BackgroundColor3 = C.bg2, TextColor3 = C.t2}):Play()
+        end)
 
         itemBtn.MouseButton1Click:Connect(function()
             valLbl.Text = itemName
@@ -593,6 +662,8 @@ local farmPage = addTab("Automation")
 
 local farmSwitch = makeSwitch(farmPage, "Auto Farm Mobs", false, function(on)
     state.autoFarm = on
+    statusLbl.Text = on and "ACTIVE  •  AUTO FARM" or "READY  •  CAKE ISLAND"
+    statusLbl.TextColor3 = on and C.grn or C.t3
     if on then
         state.killCount = 0
         startTime = tick()

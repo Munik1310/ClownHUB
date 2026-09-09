@@ -19,7 +19,7 @@ print("[Cake Island PRO]: Initializing modular loader...")
 
 -- Main.lua (Загрузчик)
 local success, errorMessage = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/GUI.luau"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/GUI.lua"))()
 end)
 
 if not success then
