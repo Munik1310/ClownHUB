@@ -1,50 +1,26 @@
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║        CLOWN HUB — Blox Fruits Ultimate Edition v7.0         ║
--- ║        Полный функционал + Фикс перетаскивания + UIShadow    ║
+-- ║        CLOWN HUB — Blox Fruits Interface (GUI)               ║
+-- ║        Интегрирован с Logic.luau и UIShadow                  ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
-local Players             = game:GetService("Players")
-local RunService          = game:GetService("RunService")
-local UserInputService    = game:GetService("UserInputService")
-local TweenService        = game:GetService("TweenService")
-local CoreGui             = game:GetService("CoreGui")
-local ReplicatedStorage   = game:GetService("ReplicatedStorage")
-local TeleportService     = game:GetService("TeleportService")
+-- Подключение логики из GitHub
+local Logic = loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/Logic.luau"))()
 
-local player    = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid  = character:WaitForChild("Humanoid")
-local rootPart  = character:WaitForChild("HumanoidRootPart")
+local Players           = game:GetService("Players")
+local UserInputService  = game:GetService("UserInputService")
+local TweenService      = game:GetService("TweenService")
+local CoreGui           = game:GetService("CoreGui")
+local TeleportService   = game:GetService("TeleportService")
 
--- Настройки по умолчанию
-local cfg = {
-    selectedMob   = "Bandit",
-    farmHeight    = 25,
-    attackDelay   = 0.1,
-    walkSpeed     = 100,
-    jumpPower     = 100,
-    uiScale       = 1.0,
-    minimized     = false,
-    autoStoreFruit = true,
+local player = Players.LocalPlayer
+
+-- Настройки GUI
+local uiCfg = {
+    minimized = false,
+    scale     = 1.0,
 }
 
--- Состояния функций
-local state = {
-    autoFarmLevel  = false,
-    autoFarmMobs   = false,
-    autoFarmBoss   = false,
-    autoChest      = false,
-    fastAttack     = false,
-    killAura       = false,
-    fruitEsp       = false,
-    playerEsp      = false,
-    waterImmunity  = false,
-    speedBoost     = false,
-    jumpBoost      = false,
-    noClip         = false,
-}
-
--- Цветовая палитра (Темный стиль, без ярких рамок)
+-- Палитра
 local C = {
     bg0   = Color3.fromRGB(12,  12,  16),
     bg1   = Color3.fromRGB(20,  20,  26),
@@ -54,7 +30,6 @@ local C = {
     t2    = Color3.fromRGB(185, 185, 200),
     t3    = Color3.fromRGB(120, 120, 135),
     grn   = Color3.fromRGB(46,  204, 113),
-    red   = Color3.fromRGB(231, 76,  60),
     white = Color3.fromRGB(255, 255, 255),
 }
 
@@ -67,7 +42,6 @@ local function corner(p, r)
     return c
 end
 
--- Мягкая тень вместо обводок
 local function addShadow(p, transparency)
     local s = Instance.new("UIStroke")
     s.Transparency = transparency or 0.85
@@ -87,7 +61,7 @@ local function pad(p, t, b, l, r)
     return u
 end
 
--- Создание GUI
+-- Создание ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "ClownHubBloxFruits"
 gui.ResetOnSpawn = false
@@ -96,13 +70,13 @@ gui.IgnoreGuiInset = true
 gui.Parent = CoreGui
 
 local uiScale = Instance.new("UIScale")
-uiScale.Scale = cfg.uiScale
+uiScale.Scale = uiCfg.scale
 uiScale.Parent = gui
 
--- ══ СВОРАЧИВАЕМАЯ ПЛАШКА (ПЛАВНЫЙ ДРАГ БЕЗ УЛЕТОВ МЫШИ) ══════
+-- ══ СВОРАЧИВАЕМАЯ ПЛАШКА (PILL) ══════════════════════════════
 local pill = Instance.new("Frame")
 pill.Size = UDim2.new(0, 150, 0, 42)
-pill.Position = UDim2.new(0, 40, 0, 80) -- Позиционировано ниже topbar
+pill.Position = UDim2.new(0, 40, 0, 80)
 pill.BackgroundColor3 = C.bg1
 pill.BorderSizePixel = 0
 pill.Visible = false
@@ -131,10 +105,9 @@ pillTxt.TextSize = 13
 pillTxt.TextXAlignment = Enum.TextXAlignment.Left
 pillTxt.Parent = pill
 
--- Надежная функция перетаскивания (не срывается при резких движениях)
+-- Бесшовный Drag для окон
 local function makeDraggable(frame)
-    local dragging = false
-    local dragStart, startPos
+    local dragging, dragStart, startPos = false, nil, nil
 
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -235,7 +208,7 @@ navLayout.Padding = UDim.new(0, 6)
 navLayout.Parent = navList
 pad(navList, 0, 0, 10, 10)
 
--- Контентная зона
+-- Контент
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -180, 1, 0)
 contentArea.Position = UDim2.new(0, 180, 0, 0)
@@ -258,7 +231,7 @@ currentTabLbl.TextSize = 17
 currentTabLbl.TextXAlignment = Enum.TextXAlignment.Left
 currentTabLbl.Parent = topBar
 
--- Собственные кнопки свернуть/закрыть
+-- Кнопки управления окном
 local winControls = Instance.new("Frame")
 winControls.Size = UDim2.new(0, 70, 0, 32)
 winControls.Position = UDim2.new(1, -80, 0, 14)
@@ -286,18 +259,16 @@ local closeBtn = createWinBtn("×")
 closeBtn.Position = UDim2.new(0, 36, 0, 0)
 closeBtn.Parent = winControls
 
-closeBtn.MouseButton1Click:Connect(function()
-    gui:Destroy()
-end)
+closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
 minimizeBtn.MouseButton1Click:Connect(function()
-    cfg.minimized = true
+    uiCfg.minimized = true
     mainFrame.Visible = false
     pill.Visible = true
 end)
 
 pillTxt.MouseButton1Click:Connect(function()
-    cfg.minimized = false
+    uiCfg.minimized = false
     pill.Visible = false
     mainFrame.Visible = true
 end)
@@ -330,7 +301,6 @@ local function addTab(name)
 
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -16, 0, 38)
-    btn.Position = UDim2.new(0, 8, 0, 0)
     btn.BackgroundColor3 = C.bg1
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = false
@@ -371,14 +341,13 @@ local function addTab(name)
     return page
 end
 
--- ══ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (КРУПНЫЙ ШРИФТ) ═══════════════════
+-- ══ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ С ПРИВЯЗКОЙ К LOGIC ═════════════════
 
-local function makeSwitch(parent, text, initial, callback, lo)
+local function makeSwitch(parent, text, initial, callback)
     local wrap = Instance.new("Frame")
     wrap.Size = UDim2.new(1, 0, 0, 50)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
-    wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
     corner(wrap, 10)
 
@@ -429,7 +398,7 @@ local function makeSwitch(parent, text, initial, callback, lo)
     end)
 end
 
-local function makeButton(parent, text, callback, lo)
+local function makeButton(parent, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 46)
     btn.BackgroundColor3 = C.bg1
@@ -438,7 +407,6 @@ local function makeButton(parent, text, callback, lo)
     btn.Text = text
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
-    btn.LayoutOrder = lo or 0
     btn.Parent = parent
     corner(btn, 10)
 
@@ -451,12 +419,11 @@ local function makeButton(parent, text, callback, lo)
     end)
 end
 
-local function makeBoxInput(parent, label, default, callback, lo)
+local function makeBoxInput(parent, label, default, callback)
     local wrap = Instance.new("Frame")
     wrap.Size = UDim2.new(1, 0, 0, 58)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
-    wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
     corner(wrap, 10)
     pad(wrap, 8, 8, 16, 16)
@@ -487,118 +454,75 @@ local function makeBoxInput(parent, label, default, callback, lo)
     end)
 end
 
--- ══ СТРАНИЦЫ И ФУНКЦИОНАЛ BLOX FRUITS ══════════════════════
+-- ══ НАПОЛНЕНИЕ ВЛАДОК ФУНКЦИЯМИ ════════════════════════════
 
 -- 1. Auto Farm
 local farmPage = addTab("Auto Farm")
 
-makeSwitch(farmPage, "Auto Farm Level (Квесты + Мобы)", false, function(on)
-    state.autoFarmLevel = on
-end, 1)
+makeSwitch(farmPage, "Auto Farm Select Mob", Logic.State.AutoFarmMobs, function(on)
+    Logic.State.AutoFarmMobs = on
+end)
 
-makeSwitch(farmPage, "Auto Farm Select Mob", false, function(on)
-    state.autoFarmMobs = on
-end, 2)
+makeBoxInput(farmPage, "Имя моба (Mob Name)", Logic.Config.SelectedMob, function(val)
+    Logic.Config.SelectedMob = val
+end)
 
-makeSwitch(farmPage, "Auto Chest Farm (Сбор сундуков)", false, function(on)
-    state.autoChest = on
-end, 3)
-
-makeBoxInput(farmPage, "Высота автофарма (Distance)", cfg.farmHeight, function(val)
+makeBoxInput(farmPage, "Высота фарма над мобом", Logic.Config.FarmHeight, function(val)
     local n = tonumber(val)
-    if n then cfg.farmHeight = math.clamp(n, 5, 100) end
-end, 4)
+    if n then Logic.Config.FarmHeight = n end
+end)
 
 -- 2. Combat & Fast Attack
 local combatPage = addTab("Combat & Aura")
 
-makeSwitch(combatPage, "Fast Attack (Ускоренная атака)", false, function(on)
-    state.fastAttack = on
-end, 1)
+makeSwitch(combatPage, "Fast Attack (Ускоренная атака)", Logic.State.FastAttack, function(on)
+    Logic.State.FastAttack = on
+end)
 
-makeSwitch(combatPage, "Kill Aura (Атака всех вокруг)", false, function(on)
-    state.killAura = on
-end, 2)
+makeSwitch(combatPage, "Kill Aura (Атака вокруг)", Logic.State.KillAura, function(on)
+    Logic.State.KillAura = on
+end)
 
--- 3. Teleports & World
+-- 3. Teleports
 local telePage = addTab("Teleports")
 
 makeButton(telePage, "Телепорт: First Sea (Первое море)", function()
     TeleportService:Teleport(2753915549, player)
-end, 1)
+end)
 
 makeButton(telePage, "Телепорт: Second Sea (Второе море)", function()
     TeleportService:Teleport(4442272183, player)
-end, 2)
+end)
 
 makeButton(telePage, "Телепорт: Third Sea (Третье море)", function()
     TeleportService:Teleport(7449423635, player)
-end, 3)
+end)
 
 -- 4. Fruits & ESP
 local fruitPage = addTab("Fruits & ESP")
 
-makeSwitch(fruitPage, "Fruit ESP (Подсветка фруктов)", false, function(on)
-    state.fruitEsp = on
-end, 1)
-
-makeSwitch(fruitPage, "Player ESP (Подсветка игроков)", false, function(on)
-    state.playerEsp = on
-end, 2)
-
-makeButton(fruitPage, "Auto Store All Fruits (Сохранить все)", function()
-    for _, tool in ipairs(player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", tool.Name, tool)
-        end
-    end
-end, 3)
-
--- 5. Character & Visuals
-local playerPage = addTab("Character")
-
-makeSwitch(playerPage, "Water Immunity (Хождение по воде)", false, function(on)
-    state.waterImmunity = on
-end, 1)
-
-makeSwitch(playerPage, "WalkSpeed Boost", false, function(on)
-    state.speedBoost = on
-end, 2)
-
-makeBoxInput(playerPage, "Скорость бега", cfg.walkSpeed, function(val)
-    local n = tonumber(val)
-    if n then cfg.walkSpeed = n end
-end, 3)
-
-makeButton(playerPage, "Boost FPS / White Screen (Для слабых ПК)", function()
-    for _, v in pairs(game:GetService("Lighting"):GetChildren()) do
-        if v:IsA("PostEffect") then v.Enabled = false end
-    end
-    workspace.Terrain.WaterWaveSize = 0
-    workspace.Terrain.WaterWaveSpeed = 0
-end, 4)
-
--- ══ ВНУТРЕННЯЯ ЛОГИКА (HEARTBEAT LOOP) ══════════════════════
-
-RunService.Heartbeat:Connect(function()
-    if state.speedBoost and humanoid then
-        humanoid.WalkSpeed = cfg.walkSpeed
-    end
-
-    -- Хождение по воде (Защита от урона водой)
-    if state.waterImmunity and character:FindFirstChild("WaterTouch") then
-        character.WaterTouch:Destroy()
-    end
-
-    -- Fast Attack Логика
-    if state.fastAttack then
-        pcall(function()
-            local combatRemote = ReplicatedStorage:FindFirstChild("RigControllerEvent", true)
-            if combatRemote then
-                combatRemote:FireServer("weaponClick")
-            end
-        end)
-    end
+makeSwitch(fruitPage, "Fruit ESP (Подсветка фруктов)", Logic.State.FruitEsp, function(on)
+    Logic.ToggleFruitESP(on)
 end)
 
-print("[CLOWN HUB]: Loaded successfully with clean typography, smooth dragging, and UI Shadows!")
+makeButton(fruitPage, "Auto Store All Fruits (Сохранить в инвентарь)", function()
+    Logic.StoreAllFruits()
+end)
+
+-- 5. Character
+local playerPage = addTab("Character")
+
+makeSwitch(playerPage, "Water Immunity (Хождение по воде)", Logic.State.WaterImmunity, function(on)
+    Logic.State.WaterImmunity = on
+end)
+
+makeSwitch(playerPage, "WalkSpeed Boost", Logic.State.SpeedBoost, function(on)
+    Logic.State.SpeedBoost = on
+end)
+
+makeBoxInput(playerPage, "Скорость бега", Logic.Config.WalkSpeed, function(val)
+    local n = tonumber(val)
+    if n then Logic.Config.WalkSpeed = n end
+end)
+
+print("[CLOWN HUB]: Fully connected UI and Logic successfully initialized!")
