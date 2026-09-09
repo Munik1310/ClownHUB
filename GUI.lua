@@ -1,45 +1,157 @@
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║        CLOWN HUB — Blox Fruits Interface (GUI)               ║
--- ║        Интегрирован с Logic.luau и UIShadow                  ║
+-- ║        CLOWN HUB — Standalone Blox Fruits Script v8.0        ║
+-- ║        GUI + Полная боевая логика в одном файле              ║
 -- ╚══════════════════════════════════════════════════════════════╝
-
--- Подключение логики из GitHub
--- ╔══════════════════════════════════════════════════════════════╗
--- ║        CLOWN HUB — Safe Loader & GUI Integration             ║
--- ╚══════════════════════════════════════════════════════════════╝
-
-local Logic
-local success, result = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/Logic.luau"))()
-end)
-
-if success and type(result) == "table" then
-    Logic = result
-else
-    warn("[ClownHUB]: Не удалось загрузить Logic.luau. Используются значения по умолчанию.")
-    Logic = {
-        Config = { SelectedMob = "Bandit", FarmHeight = 25, WalkSpeed = 100 },
-        State = { AutoFarmMobs = false, FastAttack = false, KillAura = false, FruitEsp = false, WaterImmunity = false, SpeedBoost = false },
-        ToggleFruitESP = function() end,
-        StoreAllFruits = function() end,
-    }
-end
 
 local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
 local UserInputService  = game:GetService("UserInputService")
 local TweenService      = game:GetService("TweenService")
 local CoreGui           = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService   = game:GetService("TeleportService")
+local Workspace         = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
+local player    = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid  = character:WaitForChild("Humanoid")
+local rootPart  = character:WaitForChild("HumanoidRootPart")
 
--- Настройки GUI
-local uiCfg = {
-    minimized = false,
-    scale     = 1.0,
+player.CharacterAdded:Connect(function(c)
+    character = c
+    humanoid  = c:WaitForChild("Humanoid")
+    rootPart  = c:WaitForChild("HumanoidRootPart")
+end)
+
+-- ══ ЕДИНАЯ СИСТЕМА СОСТОЯНИЙ И НАСТРОЕК ═══════════════════════
+local Logic = {
+    Config = {
+        SelectedMob = "Bandit",
+        FarmHeight  = 25,
+        WalkSpeed   = 100,
+        UiScale     = 1.0,
+    },
+    State = {
+        AutoFarmMobs = false,
+        FastAttack   = false,
+        KillAura     = false,
+        FruitEsp     = false,
+        WaterImmunity= false,
+        SpeedBoost   = false,
+    }
 }
 
--- Палитра
+local espStorage = {}
+
+-- ══ ФУНКЦИОНАЛ ЛОГИКИ И АТАКИ ═════════════════════════════════
+
+local function getTargetMob(mobName)
+    local closest, minDistance = nil, math.huge
+    local enemies = Workspace:FindFirstChild("Enemies")
+    
+    if enemies and rootPart then
+        for _, mob in ipairs(enemies:GetChildren()) do
+            if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and mob:FindFirstChild("HumanoidRootPart") then
+                if mobName == "" or string.find(string.lower(mob.Name), string.lower(mobName)) then
+                    local dist = (rootPart.Position - mob.HumanoidRootPart.Position).Magnitude
+                    if dist < minDistance then
+                        minDistance = dist
+                        closest = mob
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function hitEnemies()
+    pcall(function()
+        local net = ReplicatedStorage:FindFirstChild("RigControllerEvent", true)
+        if net then
+            net:FireServer("weaponClick")
+        end
+    end)
+end
+
+-- Основной постоянный цикл выполнения
+RunService.Heartbeat:Connect(function()
+    if not character or not rootPart or not humanoid or humanoid.Health <= 0 then return end
+
+    -- Буст скорости
+    if Logic.State.SpeedBoost then
+        humanoid.WalkSpeed = Logic.Config.WalkSpeed
+    end
+
+    -- Защита от воды
+    if Logic.State.WaterImmunity then
+        local water = character:FindFirstChild("WaterTouch")
+        if water then water:Destroy() end
+    end
+
+    -- Автофарм мобов
+    if Logic.State.AutoFarmMobs then
+        local target = getTargetMob(Logic.Config.SelectedMob)
+        if target and target:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, Logic.Config.FarmHeight, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+            rootPart.AssemblyLinearVelocity = Vector3.zero
+            
+            if Logic.State.FastAttack then
+                hitEnemies()
+            end
+        end
+    end
+
+    -- Kill Aura
+    if Logic.State.KillAura then
+        local enemies = Workspace:FindFirstChild("Enemies")
+        if enemies then
+            for _, mob in ipairs(enemies:GetChildren()) do
+                if mob:FindFirstChild("HumanoidRootPart") and (mob.HumanoidRootPart.Position - rootPart.Position).Magnitude <= 50 then
+                    hitEnemies()
+                end
+            end
+        end
+    end
+end)
+
+function Logic.ToggleFruitESP(enable)
+    Logic.State.FruitEsp = enable
+    if not enable then
+        for _, highlight in pairs(espStorage) do
+            if highlight then highlight:Destroy() end
+        end
+        espStorage = {}
+        return
+    end
+
+    task.spawn(function()
+        while Logic.State.FruitEsp do
+            for _, item in ipairs(Workspace:GetChildren()) do
+                if string.find(item.Name, "Fruit") and item:IsA("Tool") and not espStorage[item] then
+                    local h = Instance.new("Highlight")
+                    h.FillColor = Color3.fromRGB(255, 0, 100)
+                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    h.Parent = item
+                    espStorage[item] = h
+                end
+            end
+            task.wait(2)
+        end
+    end)
+end
+
+function Logic.StoreAllFruits()
+    local commF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+    for _, item in ipairs(player.Backpack:GetChildren()) do
+        if item:IsA("Tool") and string.find(item.Name, "Fruit") then
+            commF:InvokeServer("StoreFruit", item.Name, item)
+        end
+    end
+end
+
+-- ══ ПОСТРОЕНИЕ ГРАФИЧЕСКОГО ИНТЕРФЕЙСА (GUI) ═══════════════════
+
 local C = {
     bg0   = Color3.fromRGB(12,  12,  16),
     bg1   = Color3.fromRGB(20,  20,  26),
@@ -80,7 +192,6 @@ local function pad(p, t, b, l, r)
     return u
 end
 
--- Создание ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "ClownHubBloxFruits"
 gui.ResetOnSpawn = false
@@ -89,10 +200,10 @@ gui.IgnoreGuiInset = true
 gui.Parent = CoreGui
 
 local uiScale = Instance.new("UIScale")
-uiScale.Scale = uiCfg.scale
+uiScale.Scale = Logic.Config.UiScale
 uiScale.Parent = gui
 
--- ══ СВОРАЧИВАЕМАЯ ПЛАШКА (PILL) ══════════════════════════════
+-- ПЛАШКА СВОРАЧИВАНИЯ (PILL)
 local pill = Instance.new("Frame")
 pill.Size = UDim2.new(0, 150, 0, 42)
 pill.Position = UDim2.new(0, 40, 0, 80)
@@ -105,26 +216,15 @@ pill.Parent = gui
 corner(pill, 21)
 addShadow(pill, 0.6)
 
-local pillDot = Instance.new("Frame")
-pillDot.Size = UDim2.new(0, 10, 0, 10)
-pillDot.Position = UDim2.new(0, 16, 0.5, -5)
-pillDot.BackgroundColor3 = C.grn
-pillDot.BorderSizePixel = 0
-pillDot.Parent = pill
-corner(pillDot, 5)
-
 local pillTxt = Instance.new("TextButton")
-pillTxt.Size = UDim2.new(1, -34, 1, 0)
-pillTxt.Position = UDim2.new(0, 34, 0, 0)
+pillTxt.Size = UDim2.new(1, 0, 1, 0)
 pillTxt.BackgroundTransparency = 1
 pillTxt.TextColor3 = C.t1
-pillTxt.Text = "CLOWN HUB"
+pillTxt.Text = "  CLOWN HUB"
 pillTxt.Font = Enum.Font.GothamBold
 pillTxt.TextSize = 13
-pillTxt.TextXAlignment = Enum.TextXAlignment.Left
 pillTxt.Parent = pill
 
--- Бесшовный Drag для окон
 local function makeDraggable(frame)
     local dragging, dragStart, startPos = false, nil, nil
 
@@ -157,7 +257,7 @@ end
 
 makeDraggable(pill)
 
--- ══ ОСНОВНОЕ ОКНО ═════════════════════════════════════════
+-- ОСНОВНОЕ ОКНО
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 620, 0, 420)
 mainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
@@ -169,20 +269,12 @@ corner(mainFrame, 12)
 addShadow(mainFrame, 0.5)
 makeDraggable(mainFrame)
 
--- Сайдбар
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 180, 1, 0)
 sidebar.BackgroundColor3 = C.bg1
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 corner(sidebar, 12)
-
-local sideFix = Instance.new("Frame")
-sideFix.Size = UDim2.new(0, 15, 1, 0)
-sideFix.Position = UDim2.new(1, -15, 0, 0)
-sideFix.BackgroundColor3 = C.bg1
-sideFix.BorderSizePixel = 0
-sideFix.Parent = sidebar
 
 local sideHeader = Instance.new("Frame")
 sideHeader.Size = UDim2.new(1, 0, 0, 65)
@@ -200,17 +292,6 @@ brandLbl.TextSize = 16
 brandLbl.TextXAlignment = Enum.TextXAlignment.Left
 brandLbl.Parent = sideHeader
 
-local subBrandLbl = Instance.new("TextLabel")
-subBrandLbl.Size = UDim2.new(1, -20, 0, 16)
-subBrandLbl.Position = UDim2.new(0, 16, 0, 38)
-subBrandLbl.BackgroundTransparency = 1
-subBrandLbl.TextColor3 = C.t3
-subBrandLbl.Text = "BLOX FRUITS EDITION"
-subBrandLbl.Font = Enum.Font.GothamBold
-subBrandLbl.TextSize = 10
-subBrandLbl.TextXAlignment = Enum.TextXAlignment.Left
-subBrandLbl.Parent = sideHeader
-
 local navList = Instance.new("ScrollingFrame")
 navList.Size = UDim2.new(1, 0, 1, -70)
 navList.Position = UDim2.new(0, 0, 0, 70)
@@ -227,7 +308,6 @@ navLayout.Padding = UDim.new(0, 6)
 navLayout.Parent = navList
 pad(navList, 0, 0, 10, 10)
 
--- Контент
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -180, 1, 0)
 contentArea.Position = UDim2.new(0, 180, 0, 0)
@@ -250,44 +330,43 @@ currentTabLbl.TextSize = 17
 currentTabLbl.TextXAlignment = Enum.TextXAlignment.Left
 currentTabLbl.Parent = topBar
 
--- Кнопки управления окном
 local winControls = Instance.new("Frame")
 winControls.Size = UDim2.new(0, 70, 0, 32)
 winControls.Position = UDim2.new(1, -80, 0, 14)
 winControls.BackgroundTransparency = 1
 winControls.Parent = topBar
 
-local function createWinBtn(text)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 30, 0, 30)
-    b.BackgroundColor3 = C.bg1
-    b.TextColor3 = C.t2
-    b.Text = text
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 14
-    b.BorderSizePixel = 0
-    corner(b, 8)
-    return b
-end
-
-local minimizeBtn = createWinBtn("-")
-minimizeBtn.Position = UDim2.new(0, 0, 0, 0)
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+minimizeBtn.BackgroundColor3 = C.bg1
+minimizeBtn.TextColor3 = C.t2
+minimizeBtn.Text = "-"
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 14
+minimizeBtn.BorderSizePixel = 0
 minimizeBtn.Parent = winControls
+corner(minimizeBtn, 8)
 
-local closeBtn = createWinBtn("×")
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(0, 36, 0, 0)
+closeBtn.BackgroundColor3 = C.bg1
+closeBtn.TextColor3 = C.t2
+closeBtn.Text = "×"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.BorderSizePixel = 0
 closeBtn.Parent = winControls
+corner(closeBtn, 8)
 
 closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
 minimizeBtn.MouseButton1Click:Connect(function()
-    uiCfg.minimized = true
     mainFrame.Visible = false
     pill.Visible = true
 end)
 
 pillTxt.MouseButton1Click:Connect(function()
-    uiCfg.minimized = false
     pill.Visible = false
     mainFrame.Visible = true
 end)
@@ -360,7 +439,7 @@ local function addTab(name)
     return page
 end
 
--- ══ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ С ПРИВЯЗКОЙ К LOGIC ═════════════════
+-- ИНТЕРАКТИВНЫЕ КОМПОНЕНТЫ
 
 local function makeSwitch(parent, text, initial, callback)
     local wrap = Instance.new("Frame")
@@ -473,9 +552,8 @@ local function makeBoxInput(parent, label, default, callback)
     end)
 end
 
--- ══ НАПОЛНЕНИЕ ВЛАДОК ФУНКЦИЯМИ ════════════════════════════
+-- НАПОЛНЕНИЕ ВКЛАДОК
 
--- 1. Auto Farm
 local farmPage = addTab("Auto Farm")
 
 makeSwitch(farmPage, "Auto Farm Select Mob", Logic.State.AutoFarmMobs, function(on)
@@ -491,7 +569,6 @@ makeBoxInput(farmPage, "Высота фарма над мобом", Logic.Config
     if n then Logic.Config.FarmHeight = n end
 end)
 
--- 2. Combat & Fast Attack
 local combatPage = addTab("Combat & Aura")
 
 makeSwitch(combatPage, "Fast Attack (Ускоренная атака)", Logic.State.FastAttack, function(on)
@@ -502,33 +579,22 @@ makeSwitch(combatPage, "Kill Aura (Атака вокруг)", Logic.State.KillAu
     Logic.State.KillAura = on
 end)
 
--- 3. Teleports
 local telePage = addTab("Teleports")
 
-makeButton(telePage, "Телепорт: First Sea (Первое море)", function()
-    TeleportService:Teleport(2753915549, player)
-end)
+makeButton(telePage, "Телепорт: First Sea", function() TeleportService:Teleport(2753915549, player) end)
+makeButton(telePage, "Телепорт: Second Sea", function() TeleportService:Teleport(4442272183, player) end)
+makeButton(telePage, "Телепорт: Third Sea", function() TeleportService:Teleport(7449423635, player) end)
 
-makeButton(telePage, "Телепорт: Second Sea (Второе море)", function()
-    TeleportService:Teleport(4442272183, player)
-end)
-
-makeButton(telePage, "Телепорт: Third Sea (Третье море)", function()
-    TeleportService:Teleport(7449423635, player)
-end)
-
--- 4. Fruits & ESP
 local fruitPage = addTab("Fruits & ESP")
 
 makeSwitch(fruitPage, "Fruit ESP (Подсветка фруктов)", Logic.State.FruitEsp, function(on)
     Logic.ToggleFruitESP(on)
 end)
 
-makeButton(fruitPage, "Auto Store All Fruits (Сохранить в инвентарь)", function()
+makeButton(fruitPage, "Auto Store All Fruits", function()
     Logic.StoreAllFruits()
 end)
 
--- 5. Character
 local playerPage = addTab("Character")
 
 makeSwitch(playerPage, "Water Immunity (Хождение по воде)", Logic.State.WaterImmunity, function(on)
@@ -544,4 +610,4 @@ makeBoxInput(playerPage, "Скорость бега", Logic.Config.WalkSpeed, fu
     if n then Logic.Config.WalkSpeed = n end
 end)
 
-print("[CLOWN HUB]: Fully connected UI and Logic successfully initialized!")
+print("[CLOWN HUB]: Loaded successfully as Standalone Script!")
