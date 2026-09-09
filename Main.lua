@@ -1,5 +1,5 @@
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║           CLOWN HUB — Blox Fruits Standalone v9.0            ║
+-- ║         CLOWN HUB — Blox Fruits All-in-One Engine            ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
 local Players           = game:GetService("Players")
@@ -8,7 +8,6 @@ local UserInputService  = game:GetService("UserInputService")
 local TweenService      = game:GetService("TweenService")
 local CoreGui           = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService   = game:GetService("TeleportService")
 local Workspace         = game:GetService("Workspace")
 local VirtualUser       = game:GetService("VirtualUser")
 
@@ -23,13 +22,13 @@ player.CharacterAdded:Connect(function(c)
     rootPart  = c:WaitForChild("HumanoidRootPart")
 end)
 
--- ══ НАСТРОЙКИ И СОСТОЯНИЕ ═════════════════════════════════════
+-- ══ СОСТОЯНИЕ И НАСТРОЙКИ ═════════════════════════════════════
 local Logic = {
     Config = {
         SelectedMob = "Bandit",
         FarmHeight  = 12,
         WalkSpeed   = 100,
-        TweenSpeed  = 350,
+        TweenSpeed  = 300,
     },
     State = {
         AutoFarmMobs = false,
@@ -44,8 +43,9 @@ local Logic = {
 local activeTween = nil
 local espStorage  = {}
 
--- ══ РАБОЧИЕ ФУНКЦИИ (ОБХОД АНТИЧИТА И АТАКА) ════════════════════
+-- ══ ЛОГИКА БОЯ И ДВИЖЕНИЯ ═════════════════════════════════════
 
+-- Автоматическое взятие оружия в руку
 local function equipWeapon()
     if not character:FindFirstChildOfClass("Tool") then
         local tool = player.Backpack:FindFirstChildOfClass("Tool")
@@ -55,10 +55,11 @@ local function equipWeapon()
     end
 end
 
+-- Плавное перемещение (Обход античита)
 local function safeMoveTo(targetCFrame)
     if not rootPart then return end
     local distance = (targetCFrame.Position - rootPart.Position).Magnitude
-    if distance < 4 then
+    if distance < 5 then
         rootPart.CFrame = targetCFrame
         return
     end
@@ -71,6 +72,7 @@ local function safeMoveTo(targetCFrame)
     activeTween:Play()
 end
 
+-- Поиск ближайшего моба по имени
 local function getTargetMob(mobName)
     local closest, minDistance = nil, math.huge
     local enemies = Workspace:FindFirstChild("Enemies")
@@ -93,8 +95,10 @@ local function getTargetMob(mobName)
     return closest
 end
 
+-- Система удара
 local function performAttack()
     equipWeapon()
+    
     VirtualUser:CaptureController()
     VirtualUser:ClickButton1(Vector2.new(500, 500))
     
@@ -106,55 +110,7 @@ local function performAttack()
     end)
 end
 
--- ══ ОСНОВНОЙ ЦИКЛ ВЫПОЛНЕНИЯ ══════════════════════════════════
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if character and rootPart and humanoid and humanoid.Health > 0 then
-            
-            if Logic.State.SpeedBoost then
-                humanoid.WalkSpeed = Logic.Config.WalkSpeed
-            end
-
-            if Logic.State.WaterImmunity then
-                local water = character:FindFirstChild("WaterTouch")
-                if water then water:Destroy() end
-            end
-
-            if Logic.State.AutoFarmMobs then
-                local target = getTargetMob(Logic.Config.SelectedMob)
-                if target and target:FindFirstChild("HumanoidRootPart") then
-                    local targetPos = target.HumanoidRootPart.CFrame * CFrame.new(0, Logic.Config.FarmHeight, 0)
-                    safeMoveTo(targetPos)
-                    
-                    if Logic.State.FastAttack then
-                        performAttack()
-                    end
-                end
-            elseif activeTween then
-                activeTween:Cancel()
-                activeTween = nil
-            end
-
-            if Logic.State.KillAura then
-                local enemies = Workspace:FindFirstChild("Enemies")
-                if enemies then
-                    for _, mob in ipairs(enemies:GetChildren()) do
-                        local mRoot = mob:FindFirstChild("HumanoidRootPart")
-                        local mHum = mob:FindFirstChild("Humanoid")
-                        if mRoot and mHum and mHum.Health > 0 then
-                            if (mRoot.Position - rootPart.Position).Magnitude <= 40 then
-                                performAttack()
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
+-- ESP Фруктов
 function Logic.ToggleFruitESP(enable)
     Logic.State.FruitEsp = enable
     if not enable then
@@ -181,6 +137,7 @@ function Logic.ToggleFruitESP(enable)
     end)
 end
 
+-- Сбор всех фруктов в инвентарь
 function Logic.StoreAllFruits()
     local commF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
     for _, item in ipairs(player.Backpack:GetChildren()) do
@@ -190,7 +147,60 @@ function Logic.StoreAllFruits()
     end
 end
 
--- ══ ИНТЕРФЕЙС (GUI) ═══════════════════════════════════════════
+-- ══ ОСНОВНОЙ ИГРОВОЙ ЦИКЛ ═════════════════════════════════════
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if character and rootPart and humanoid and humanoid.Health > 0 then
+            
+            -- Увеличение скорости
+            if Logic.State.SpeedBoost then
+                humanoid.WalkSpeed = Logic.Config.WalkSpeed
+            end
+
+            -- Защита от урона водой
+            if Logic.State.WaterImmunity then
+                local water = character:FindFirstChild("WaterTouch")
+                if water then water:Destroy() end
+            end
+
+            -- Автофарм
+            if Logic.State.AutoFarmMobs then
+                local target = getTargetMob(Logic.Config.SelectedMob)
+                if target and target:FindFirstChild("HumanoidRootPart") then
+                    local targetPos = target.HumanoidRootPart.CFrame * CFrame.new(0, Logic.Config.FarmHeight, 0)
+                    safeMoveTo(targetPos)
+                    
+                    if Logic.State.FastAttack then
+                        performAttack()
+                    end
+                end
+            elseif activeTween then
+                activeTween:Cancel()
+                activeTween = nil
+            end
+
+            -- Киллаура
+            if Logic.State.KillAura then
+                local enemies = Workspace:FindFirstChild("Enemies")
+                if enemies then
+                    for _, mob in ipairs(enemies:GetChildren()) do
+                        local mRoot = mob:FindFirstChild("HumanoidRootPart")
+                        local mHum = mob:FindFirstChild("Humanoid")
+                        if mRoot and mHum and mHum.Health > 0 then
+                            if (mRoot.Position - rootPart.Position).Magnitude <= 40 then
+                                performAttack()
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ══ ИНТЕРФЕЙС ПОЛЬЗОВАТЕЛЯ (GUI) ══════════════════════════════
 local C = {
     bg0 = Color3.fromRGB(12, 12, 16), bg1 = Color3.fromRGB(20, 20, 26),
     bg3 = Color3.fromRGB(45, 45, 58), t1  = Color3.fromRGB(255, 255, 255),
@@ -199,6 +209,11 @@ local C = {
 
 local function corner(p, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r or 8) c.Parent = p end
 local function pad(p, t, b, l, r) local u = Instance.new("UIPadding") u.PaddingTop = UDim.new(0, t) u.PaddingBottom = UDim.new(0, b or t) u.PaddingLeft = UDim.new(0, l or t) u.PaddingRight = UDim.new(0, r or t) u.Parent = p end
+
+-- Удаление старого UI при перезапуске
+if CoreGui:FindFirstChild("ClownHubBloxFruits") then
+    CoreGui.ClownHubBloxFruits:Destroy()
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "ClownHubBloxFruits"
@@ -211,6 +226,7 @@ mainFrame.Size = UDim2.new(0, 580, 0, 380)
 mainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
 mainFrame.BackgroundColor3 = C.bg0
 mainFrame.Active = true
+mainFrame.Draggable = true
 mainFrame.Parent = gui
 corner(mainFrame, 12)
 
@@ -219,6 +235,15 @@ sidebar.Size = UDim2.new(0, 160, 1, 0)
 sidebar.BackgroundColor3 = C.bg1
 sidebar.Parent = mainFrame
 corner(sidebar, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "ClownHUB"
+title.TextColor3 = C.t1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = sidebar
 
 local navList = Instance.new("ScrollingFrame")
 navList.Size = UDim2.new(1, 0, 1, -40)
@@ -337,10 +362,26 @@ local function makeBoxInput(parent, label, default, callback)
     end)
 end
 
+local function makeButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = C.bg1
+    btn.TextColor3 = C.t1
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.Parent = parent
+    corner(btn, 8)
+
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
+end
+
 -- НАПОЛНЕНИЕ ВКЛАДОК
 local farmPage = addTab("Auto Farm")
 makeSwitch(farmPage, "Auto Farm Select Mob", Logic.State.AutoFarmMobs, function(on) Logic.State.AutoFarmMobs = on end)
-makeSwitch(farmPage, "Fast Attack", Logic.State.FastAttack, function(on) Logic.State.FastAttack = on end)
+makeSwitch(farmPage, "Fast Attack (Авто-атака)", Logic.State.FastAttack, function(on) Logic.State.FastAttack = on end)
 makeBoxInput(farmPage, "Имя моба", Logic.Config.SelectedMob, function(val) Logic.Config.SelectedMob = val end)
 
 local combatPage = addTab("Combat")
@@ -348,9 +389,10 @@ makeSwitch(combatPage, "Kill Aura", Logic.State.KillAura, function(on) Logic.Sta
 
 local fruitPage = addTab("Fruits")
 makeSwitch(fruitPage, "Fruit ESP", Logic.State.FruitEsp, function(on) Logic.ToggleFruitESP(on) end)
+makeButton(fruitPage, "Store All Fruits", function() Logic.StoreAllFruits() end)
 
 local playerPage = addTab("Player")
 makeSwitch(playerPage, "Water Immunity", Logic.State.WaterImmunity, function(on) Logic.State.WaterImmunity = on end)
 makeSwitch(playerPage, "WalkSpeed Boost", Logic.State.SpeedBoost, function(on) Logic.State.SpeedBoost = on end)
 
-print("[CLOWN HUB]: Loaded and active!")
+print("[CLOWN HUB]: Fully loaded as single file!")
