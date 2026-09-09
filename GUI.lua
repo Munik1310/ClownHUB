@@ -4,7 +4,26 @@
 -- ╚══════════════════════════════════════════════════════════════╝
 
 -- Подключение логики из GitHub
-local Logic = loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/Logic.luau"))()
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║        CLOWN HUB — Safe Loader & GUI Integration             ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+local Logic
+local success, result = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Munik1310/ClownHUB/refs/heads/main/Logic.luau"))()
+end)
+
+if success and type(result) == "table" then
+    Logic = result
+else
+    warn("[ClownHUB]: Не удалось загрузить Logic.luau. Используются значения по умолчанию.")
+    Logic = {
+        Config = { SelectedMob = "Bandit", FarmHeight = 25, WalkSpeed = 100 },
+        State = { AutoFarmMobs = false, FastAttack = false, KillAura = false, FruitEsp = false, WaterImmunity = false, SpeedBoost = false },
+        ToggleFruitESP = function() end,
+        StoreAllFruits = function() end,
+    }
+end
 
 local Players           = game:GetService("Players")
 local UserInputService  = game:GetService("UserInputService")
