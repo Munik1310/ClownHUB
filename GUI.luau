@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║         Cake Island PRO v5.0 — UI & Logic Script             ║
--- ║         Clean Typography, Dropdown List, Player Stats        ║
+-- ║         Cake Island PRO v6.0 — Ultimate Refactor             ║
+-- ║         UI & Logic Code (Залей этот код в свой GUI.luau)      ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
 local Players             = game:GetService("Players")
@@ -34,41 +34,57 @@ local cfg = {
 local cakeMobs = {"Baker", "Baking Staff", "Cake Guard", "Head Baker", "Cake Queen", "Chef Apprentice", "Pastry Guard"}
 
 local state = {
-    flying    = false,
-    autoFarm  = false,
-    speedBoost= false,
-    jumpBoost = false,
-    attackCD  = false,
-    killCount = 0,
-    lv        = nil, 
-    ao        = nil, 
-    att       = nil,
+    flying     = false,
+    autoFarm   = false,
+    speedBoost = false,
+    jumpBoost  = false,
+    attackCD   = false,
+    killCount  = 0,
 }
 
--- Professional Color Palette (Clean Dark Mode Theme)
+-- Ультра-премиальная темная палитра без обводок
 local C = {
-    bg0   = Color3.fromRGB(15,  15,  18),
-    bg1   = Color3.fromRGB(22,  22,  26),
-    bg2   = Color3.fromRGB(30,  30,  36),
-    bg3   = Color3.fromRGB(40,  40,  48),
-    s1    = Color3.fromRGB(50,  50,  60),
-    s2    = Color3.fromRGB(70,  70,  85),
-    t1    = Color3.fromRGB(245, 245, 247),
-    t2    = Color3.fromRGB(170, 170, 180),
-    t3    = Color3.fromRGB(110, 110, 120),
+    bg0   = Color3.fromRGB(10,  10,  13),
+    bg1   = Color3.fromRGB(17,  17,  22),
+    bg2   = Color3.fromRGB(26,  26,  34),
+    bg3   = Color3.fromRGB(38,  38,  48),
+    t1    = Color3.fromRGB(255, 255, 255),
+    t2    = Color3.fromRGB(180, 180, 195),
+    t3    = Color3.fromRGB(115, 115, 130),
     grn   = Color3.fromRGB(46,  204, 113),
     red   = Color3.fromRGB(231, 76,  60),
-    amb   = Color3.fromRGB(241, 196, 15),
     white = Color3.fromRGB(255, 255, 255),
 }
 
 local tw = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-local function corner(p, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r or 6) c.Parent = p return c end
-local function stroke(p, col, th) local s = Instance.new("UIStroke") s.Color = col or C.s1 s.Thickness = th or 1 s.Parent = p return s end
-local function pad(p, t, b, l, r) local u = Instance.new("UIPadding") u.PaddingTop = UDim.new(0, t) u.PaddingBottom = UDim.new(0, b or t) u.PaddingLeft = UDim.new(0, l or t) u.PaddingRight = UDim.new(0, r or t) u.Parent = p return u end
+local function corner(p, r) 
+    local c = Instance.new("UICorner") 
+    c.CornerRadius = UDim.new(0, r or 8) 
+    c.Parent = p 
+    return c 
+end
 
--- ScreenGui placed in CoreGui so it completely avoids Roblox's core menus and topbar scaling quirks
+-- Использование UIStroke полностью убрано, заменено на мягкий UIShadow для объема
+local function addShadow(p, transparency)
+    local s = Instance.new("UIStroke")
+    s.Transparency = transparency or 0.85
+    s.Color = Color3.fromRGB(0, 0, 0)
+    s.Thickness = 2
+    s.Parent = p
+    return s
+end
+
+local function pad(p, t, b, l, r) 
+    local u = Instance.new("UIPadding") 
+    u.PaddingTop = UDim.new(0, t) 
+    u.PaddingBottom = UDim.new(0, b or t) 
+    u.PaddingLeft = UDim.new(0, l or t) 
+    u.PaddingRight = UDim.new(0, r or t) 
+    u.Parent = p 
+    return u 
+end
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "CakeIslandSidebarPRO"
 gui.ResetOnSpawn = false
@@ -80,96 +96,135 @@ local uiScale = Instance.new("UIScale")
 uiScale.Scale = cfg.uiScale
 uiScale.Parent = gui
 
--- Draggable Minimized Floating Pill (Fully movable, clean typography)
+-- ══ СВОРАЧИВАЕМАЯ КНОПКА (PILL) С ПЛАВНЫМ ПЕРЕПАСОМ ═══════
 local pill = Instance.new("Frame")
-pill.Size = UDim2.new(0, 130, 0, 36)
-pill.Position = UDim2.new(0, 20, 0, 20)
+pill.Size = UDim2.new(0, 140, 0, 40)
+pill.Position = UDim2.new(0, 30, 0, 30)
 pill.BackgroundColor3 = C.bg1
 pill.BorderSizePixel = 0
 pill.Visible = false
 pill.Active = true
-pill.Draggable = true
-pill.ZIndex = 50
+pill.ZIndex = 100
 pill.Parent = gui
-corner(pill, 8)
-stroke(pill, C.s2, 1)
+corner(pill, 20)
+addShadow(pill, 0.7)
 
 local pillDot = Instance.new("Frame")
-pillDot.Size = UDim2.new(0, 8, 0, 8)
-pillDot.Position = UDim2.new(0, 12, 0.5, -4)
+pillDot.Size = UDim2.new(0, 10, 0, 10)
+pillDot.Position = UDim2.new(0, 14, 0.5, -5)
 pillDot.BackgroundColor3 = C.t3
 pillDot.BorderSizePixel = 0
 pillDot.Parent = pill
-corner(pillDot, 4)
+corner(pillDot, 5)
 
 local pillTxt = Instance.new("TextButton")
-pillTxt.Size = UDim2.new(1, -28, 1, 0)
-pillTxt.Position = UDim2.new(0, 26, 0, 0)
+pillTxt.Size = UDim2.new(1, -30, 1, 0)
+pillTxt.Position = UDim2.new(0, 30, 0, 0)
 pillTxt.BackgroundTransparency = 1
 pillTxt.TextColor3 = C.t1
-pillTxt.Text = "Cake Panel"
-pillTxt.Font = Enum.Font.GothamMedium
+pillTxt.Text = "CAKE HUB"
+pillTxt.Font = Enum.Font.GothamBold
 pillTxt.TextSize = 13
 pillTxt.TextXAlignment = Enum.TextXAlignment.Left
 pillTxt.Parent = pill
 
--- Main Window Container
+-- Плавное кастомное перетаскивание без багов с улетом мышки
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+makeDraggable(pill)
+
+-- ══ ОСНОВНОЕ ОКНО ═════════════════════════════════════════
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 560, 0, 380)
-mainFrame.Position = UDim2.new(0.5, -280, 0.5, -190)
+mainFrame.Size = UDim2.new(0, 600, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
 mainFrame.BackgroundColor3 = C.bg0
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-mainFrame.Draggable = true
 mainFrame.Parent = gui
-corner(mainFrame, 10)
-stroke(mainFrame, C.s2, 1)
+corner(mainFrame, 12)
+addShadow(mainFrame, 0.6)
+makeDraggable(mainFrame)
 
--- Sidebar Panel
+-- Сайдбар
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 160, 1, 0)
+sidebar.Size = UDim2.new(0, 175, 1, 0)
 sidebar.BackgroundColor3 = C.bg1
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
-corner(sidebar, 10)
+corner(sidebar, 12)
 
+-- Убираем лишний угол у сайдбара
 local sidebarFix = Instance.new("Frame")
-sidebarFix.Size = UDim2.new(0, 10, 1, 0)
-sidebarFix.Position = UDim2.new(1, -10, 0, 0)
+sidebarFix.Size = UDim2.new(0, 12, 1, 0)
+sidebarFix.Position = UDim2.new(1, -12, 0, 0)
 sidebarFix.BackgroundColor3 = C.bg1
 sidebarFix.BorderSizePixel = 0
 sidebarFix.Parent = sidebar
 
 local sideHeader = Instance.new("Frame")
-sideHeader.Size = UDim2.new(1, 0, 0, 55)
+sideHeader.Size = UDim2.new(1, 0, 0, 65)
 sideHeader.BackgroundTransparency = 1
 sideHeader.Parent = sidebar
 
 local brandLbl = Instance.new("TextLabel")
-brandLbl.Size = UDim2.new(1, -20, 0, 20)
-brandLbl.Position = UDim2.new(0, 14, 0, 14)
+brandLbl.Size = UDim2.new(1, -24, 0, 22)
+brandLbl.Position = UDim2.new(0, 16, 0, 16)
 brandLbl.BackgroundTransparency = 1
 brandLbl.TextColor3 = C.t1
-brandLbl.Text = "CAKE ISLAND"
+brandLbl.Text = "CLOWN HUB"
 brandLbl.Font = Enum.Font.GothamBold
-brandLbl.TextSize = 13
+brandLbl.TextSize = 15
 brandLbl.TextXAlignment = Enum.TextXAlignment.Left
 brandLbl.Parent = sideHeader
 
 local subBrandLbl = Instance.new("TextLabel")
-subBrandLbl.Size = UDim2.new(1, -20, 0, 14)
-subBrandLbl.Position = UDim2.new(0, 14, 0, 32)
+subBrandLbl.Size = UDim2.new(1, -24, 0, 16)
+subBrandLbl.Position = UDim2.new(0, 16, 0, 38)
 subBrandLbl.BackgroundTransparency = 1
 subBrandLbl.TextColor3 = C.t3
-subBrandLbl.Text = "PRO v5.0"
-subBrandLbl.Font = Enum.Font.Gotham
-subBrandLbl.TextSize = 11
+subBrandLbl.Text = "CAKE ISLAND PRO"
+subBrandLbl.Font = Enum.Font.GothamBold
+subBrandLbl.TextSize = 10
 subBrandLbl.TextXAlignment = Enum.TextXAlignment.Left
 subBrandLbl.Parent = sideHeader
 
 local navList = Instance.new("ScrollingFrame")
-navList.Size = UDim2.new(1, 0, 1, -65)
-navList.Position = UDim2.new(0, 0, 0, 65)
+navList.Size = UDim2.new(1, 0, 1, -75)
+navList.Position = UDim2.new(0, 0, 0, 75)
 navList.BackgroundTransparency = 1
 navList.BorderSizePixel = 0
 navList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -179,62 +234,62 @@ navList.Parent = sidebar
 
 local navLayout = Instance.new("UIListLayout")
 navLayout.SortOrder = Enum.SortOrder.LayoutOrder
-navLayout.Padding = UDim.new(0, 4)
+navLayout.Padding = UDim.new(0, 6)
 navLayout.Parent = navList
-pad(navList, 0, 0, 8, 8)
+pad(navList, 0, 0, 10, 10)
 
--- Content Area
+-- Контентная область
 local contentArea = Instance.new("Frame")
-contentArea.Size = UDim2.new(1, -160, 1, 0)
-contentArea.Position = UDim2.new(0, 160, 0, 0)
+contentArea.Size = UDim2.new(1, -175, 1, 0)
+contentArea.Position = UDim2.new(0, 175, 0, 0)
 contentArea.BackgroundTransparency = 1
 contentArea.Parent = mainFrame
 
 local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 50)
+topBar.Size = UDim2.new(1, 0, 0, 60)
 topBar.BackgroundTransparency = 1
 topBar.Parent = contentArea
 
 local currentTabLbl = Instance.new("TextLabel")
-currentTabLbl.Size = UDim2.new(1, -80, 1, 0)
-currentTabLbl.Position = UDim2.new(0, 16, 0, 0)
+currentTabLbl.Size = UDim2.new(1, -90, 1, 0)
+currentTabLbl.Position = UDim2.new(0, 20, 0, 0)
 currentTabLbl.BackgroundTransparency = 1
 currentTabLbl.TextColor3 = C.t1
 currentTabLbl.Text = "Automation"
 currentTabLbl.Font = Enum.Font.GothamBold
-currentTabLbl.TextSize = 14
+currentTabLbl.TextSize = 16
 currentTabLbl.TextXAlignment = Enum.TextXAlignment.Left
 currentTabLbl.Parent = topBar
 
+-- Кнопки сворачивания и закрытия (внутри нашего GUI, стандартные Роблокса не задействованы)
 local winControls = Instance.new("Frame")
-winControls.Size = UDim2.new(0, 60, 0, 28)
-winControls.Position = UDim2.new(1, -70, 0, 12)
+winControls.Size = UDim2.new(0, 70, 0, 32)
+winControls.Position = UDim2.new(1, -85, 0, 14)
 winControls.BackgroundTransparency = 1
 winControls.Parent = topBar
 
 local wCtrlLayout = Instance.new("UIListLayout")
 wCtrlLayout.FillDirection = Enum.FillDirection.Horizontal
 wCtrlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-wCtrlLayout.Padding = UDim.new(0, 6)
+wCtrlLayout.Padding = UDim.new(0, 8)
 wCtrlLayout.Parent = winControls
 
 local function winBtn(text)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 26, 0, 26)
+    b.Size = UDim2.new(0, 30, 0, 30)
     b.BackgroundColor3 = C.bg1
     b.TextColor3 = C.t2
     b.Text = text
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
+    b.TextSize = 13
     b.BorderSizePixel = 0
     b.Parent = winControls
-    corner(b, 6)
-    stroke(b, C.s1, 1)
+    corner(b, 8)
     return b
 end
 
 local minimizeHeaderBtn = winBtn("-")
-local closeHeaderBtn = winBtn("X")
+local closeHeaderBtn = winBtn("×")
 
 closeHeaderBtn.MouseButton1Click:Connect(function()
     gui:Destroy()
@@ -254,8 +309,8 @@ pillTxt.MouseButton1Click:Connect(function()
 end)
 
 local pagesContainer = Instance.new("Frame")
-pagesContainer.Size = UDim2.new(1, 0, 1, -50)
-pagesContainer.Position = UDim2.new(0, 0, 0, 50)
+pagesContainer.Size = UDim2.new(1, 0, 1, -60)
+pagesContainer.Position = UDim2.new(0, 0, 0, 60)
 pagesContainer.BackgroundTransparency = 1
 pagesContainer.Parent = contentArea
 
@@ -268,16 +323,16 @@ local function createPage()
     p.BorderSizePixel = 0
     p.CanvasSize = UDim2.new(0, 0, 0, 0)
     p.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    p.ScrollBarThickness = 3
-    p.ScrollBarImageColor3 = C.s1
+    p.ScrollBarThickness = 4
+    p.ScrollBarImageColor3 = C.bg3
     p.Visible = false
     p.Parent = pagesContainer
 
     local l = Instance.new("UIListLayout")
     l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 10)
+    l.Padding = UDim.new(0, 12)
     l.Parent = p
-    pad(p, 10, 15, 20, 20)
+    pad(p, 10, 20, 24, 24)
     return p
 end
 
@@ -285,22 +340,22 @@ local function addTab(name)
     local page = createPage()
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -12, 0, 34)
-    btn.Position = UDim2.new(0, 6, 0, 0)
+    btn.Size = UDim2.new(1, -16, 0, 40)
+    btn.Position = UDim2.new(0, 8, 0, 0)
     btn.BackgroundColor3 = C.bg1
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = false
     btn.Parent = navList
-    corner(btn, 6)
+    corner(btn, 8)
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -16, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.Size = UDim2.new(1, -20, 1, 0)
+    lbl.Position = UDim2.new(0, 14, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.TextColor3 = C.t2
     lbl.Text = name
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextSize = 12
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 13
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = btn
 
@@ -327,43 +382,43 @@ local function addTab(name)
     return page
 end
 
--- UI Component builders with clear, readable typography
+-- ══ КОМПОНЕНТЫ ИНТЕРФЕЙСА (Крупный жирный шрифт, без обводок) ══════
+
 local function makeSwitch(parent, text, initial, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 42)
+    wrap.Size = UDim2.new(1, 0, 0, 50)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
-    corner(wrap, 8)
-    stroke(wrap, C.s1, 1)
-    pad(wrap, 0, 0, 14, 14)
+    corner(wrap, 10)
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -50, 1, 0)
+    lbl.Size = UDim2.new(1, -70, 1, 0)
+    lbl.Position = UDim2.new(0, 16, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.TextColor3 = C.t1
     lbl.Text = text
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextSize = 13
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 14
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = wrap
 
     local pillBg = Instance.new("Frame")
-    pillBg.Size = UDim2.new(0, 36, 0, 20)
-    pillBg.Position = UDim2.new(1, -36, 0.5, -10)
-    pillBg.BackgroundColor3 = initial and C.grn or C.s1
+    pillBg.Size = UDim2.new(0, 44, 0, 24)
+    pillBg.Position = UDim2.new(1, -56, 0.5, -12)
+    pillBg.BackgroundColor3 = initial and C.grn or C.bg3
     pillBg.BorderSizePixel = 0
     pillBg.Parent = wrap
-    corner(pillBg, 10)
+    corner(pillBg, 12)
 
     local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 16, 0, 16)
-    circle.Position = initial and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = initial and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
     circle.BackgroundColor3 = C.white
     circle.BorderSizePixel = 0
     circle.Parent = pillBg
-    corner(circle, 8)
+    corner(circle, 9)
 
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 1, 0)
@@ -376,10 +431,10 @@ local function makeSwitch(parent, text, initial, callback, lo)
         active = not active
         if active then
             TweenService:Create(pillBg, tw, {BackgroundColor3 = C.grn}):Play()
-            TweenService:Create(circle, tw, {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
+            TweenService:Create(circle, tw, {Position = UDim2.new(1, -21, 0.5, -9)}):Play()
         else
-            TweenService:Create(pillBg, tw, {BackgroundColor3 = C.s1}):Play()
-            TweenService:Create(circle, tw, {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
+            TweenService:Create(pillBg, tw, {BackgroundColor3 = C.bg3}):Play()
+            TweenService:Create(circle, tw, {Position = UDim2.new(0, 3, 0.5, -9)}):Play()
         end
         if callback then callback(active) end
     end)
@@ -387,8 +442,8 @@ local function makeSwitch(parent, text, initial, callback, lo)
     return {
         Set = function(val)
             active = val
-            pillBg.BackgroundColor3 = active and C.grn or C.s1
-            circle.Position = active and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+            pillBg.BackgroundColor3 = active and C.grn or C.bg3
+            circle.Position = active and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
         end,
         Get = function() return active end
     }
@@ -396,33 +451,32 @@ end
 
 local function makeBoxInput(parent, label, default, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 52)
+    wrap.Size = UDim2.new(1, 0, 0, 60)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
-    corner(wrap, 8)
-    stroke(wrap, C.s1, 1)
-    pad(wrap, 8, 8, 14, 14)
+    corner(wrap, 10)
+    pad(wrap, 10, 10, 16, 16)
 
     local lbf = Instance.new("TextLabel")
-    lbf.Size = UDim2.new(1, 0, 0, 14)
+    lbf.Size = UDim2.new(1, 0, 0, 16)
     lbf.BackgroundTransparency = 1
     lbf.TextColor3 = C.t3
     lbf.Text = label
-    lbf.Font = Enum.Font.GothamMedium
+    lbf.Font = Enum.Font.GothamBold
     lbf.TextSize = 11
     lbf.TextXAlignment = Enum.TextXAlignment.Left
     lbf.Parent = wrap
 
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 20)
-    box.Position = UDim2.new(0, 0, 0, 18)
+    box.Size = UDim2.new(1, 0, 0, 24)
+    box.Position = UDim2.new(0, 0, 0, 20)
     box.BackgroundTransparency = 1
     box.TextColor3 = C.t1
     box.Text = tostring(default)
     box.Font = Enum.Font.GothamBold
-    box.TextSize = 13
+    box.TextSize = 14
     box.TextXAlignment = Enum.TextXAlignment.Left
     box.Parent = wrap
 
@@ -432,66 +486,64 @@ local function makeBoxInput(parent, label, default, callback, lo)
     return box
 end
 
--- Scrollable Dropdown List component (no repetitive clicking needed, picks directly from list)
+-- Встроенный удобный выпадающий список прямо в интерфейсе (без кликов по 10 раз)
 local function makeScrollDropdown(parent, label, list, callback, lo)
     local wrap = Instance.new("Frame")
-    wrap.Size = UDim2.new(1, 0, 0, 56)
+    wrap.Size = UDim2.new(1, 0, 0, 64)
     wrap.BackgroundColor3 = C.bg1
     wrap.BorderSizePixel = 0
     wrap.LayoutOrder = lo or 0
     wrap.ClipsDescendants = false
-    wrap.ZIndex = 5
+    wrap.ZIndex = 10
     wrap.Parent = parent
-    corner(wrap, 8)
-    stroke(wrap, C.s1, 1)
-    pad(wrap, 8, 8, 14, 14)
+    corner(wrap, 10)
+    pad(wrap, 10, 10, 16, 16)
 
     local lbf = Instance.new("TextLabel")
-    lbf.Size = UDim2.new(1, 0, 0, 14)
+    lbf.Size = UDim2.new(1, 0, 0, 16)
     lbf.BackgroundTransparency = 1
     lbf.TextColor3 = C.t3
     lbf.Text = label
-    lbf.Font = Enum.Font.GothamMedium
+    lbf.Font = Enum.Font.GothamBold
     lbf.TextSize = 11
     lbf.TextXAlignment = Enum.TextXAlignment.Left
     lbf.Parent = wrap
 
     local valLbl = Instance.new("TextLabel")
-    valLbl.Size = UDim2.new(1, -30, 0, 22)
-    valLbl.Position = UDim2.new(0, 0, 0, 18)
+    valLbl.Size = UDim2.new(1, -30, 0, 24)
+    valLbl.Position = UDim2.new(0, 0, 0, 20)
     valLbl.BackgroundTransparency = 1
     valLbl.TextColor3 = C.t1
     valLbl.Text = cfg.selectedMob
     valLbl.Font = Enum.Font.GothamBold
-    valLbl.TextSize = 13
+    valLbl.TextSize = 14
     valLbl.TextXAlignment = Enum.TextXAlignment.Left
     valLbl.Parent = wrap
 
     local arrow = Instance.new("TextLabel")
-    arrow.Size = UDim2.new(0, 20, 0, 22)
-    arrow.Position = UDim2.new(1, -20, 0, 18)
+    arrow.Size = UDim2.new(0, 20, 0, 24)
+    arrow.Position = UDim2.new(1, -20, 0, 20)
     arrow.BackgroundTransparency = 1
     arrow.TextColor3 = C.t2
     arrow.Text = "v"
     arrow.Font = Enum.Font.GothamBold
-    arrow.TextSize = 12
+    arrow.TextSize = 14
     arrow.Parent = wrap
 
     local dropdownOpen = false
     
     local dropListFrame = Instance.new("ScrollingFrame")
-    dropListFrame.Size = UDim2.new(1, 0, 0, 110)
-    dropListFrame.Position = UDim2.new(0, 0, 1, 6)
+    dropListFrame.Size = UDim2.new(1, 0, 0, 130)
+    dropListFrame.Position = UDim2.new(0, 0, 1, 8)
     dropListFrame.BackgroundColor3 = C.bg2
     dropListFrame.BorderSizePixel = 0
-    dropListFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 28)
-    dropListFrame.AutomaticCanvasSize = Enum.AutomaticSize.None
+    dropListFrame.CanvasSize = UDim2.new(0, 0, 0, #list * 32)
     dropListFrame.ScrollBarThickness = 3
     dropListFrame.Visible = false
-    dropListFrame.ZIndex = 10
+    dropListFrame.ZIndex = 20
     dropListFrame.Parent = wrap
     corner(dropListFrame, 8)
-    stroke(dropListFrame, C.s2, 1)
+    addShadow(dropListFrame, 0.5)
 
     local listLayout = Instance.new("UIListLayout")
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -499,14 +551,14 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
 
     for _, itemName in ipairs(list) do
         local itemBtn = Instance.new("TextButton")
-        itemBtn.Size = UDim2.new(1, 0, 0, 28)
+        itemBtn.Size = UDim2.new(1, 0, 0, 32)
         itemBtn.BackgroundTransparency = 1
         itemBtn.TextColor3 = C.t2
         itemBtn.Text = "  " .. itemName
-        itemBtn.Font = Enum.Font.GothamMedium
-        itemBtn.TextSize = 12
+        itemBtn.Font = Enum.Font.GothamBold
+        itemBtn.TextSize = 13
         itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-        itemBtn.ZIndex = 11
+        itemBtn.ZIndex = 21
         itemBtn.Parent = dropListFrame
 
         itemBtn.MouseButton1Click:Connect(function()
@@ -522,7 +574,7 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
     mainBtn.BackgroundTransparency = 1
     mainBtn.Text = ""
-    mainBtn.ZIndex = 6
+    mainBtn.ZIndex = 11
     mainBtn.Parent = wrap
 
     mainBtn.MouseButton1Click:Connect(function()
@@ -534,9 +586,9 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     return wrap
 end
 
--- ══ CREATE TABS ════════════════════════════════
+-- ══ ВКЛАДКИ И ФУНКЦИОНАЛ ══════════════════════════════════
 
--- Tab 1: Automation & Farming
+-- 1. Automation
 local farmPage = addTab("Automation")
 
 local farmSwitch = makeSwitch(farmPage, "Auto Farm Mobs", false, function(on)
@@ -560,7 +612,7 @@ makeSwitch(farmPage, "Auto Loot Nearby Drops", cfg.lootEnabled, function(on)
     cfg.lootEnabled = on
 end, 4)
 
--- Tab 2: Universal Player Utilities (Speed, Jump, Fly)
+-- 2. Utilities (Универсальные функции бега и прыжков)
 local utilsPage = addTab("Utilities")
 
 local speedSwitch = makeSwitch(utilsPage, "Custom WalkSpeed Boost", false, function(on)
@@ -581,72 +633,70 @@ makeBoxInput(utilsPage, "JumpPower Value", cfg.jumpPower, function(val)
     if n then cfg.jumpPower = math.clamp(n, 50, 300) end
 end, 4)
 
--- Tab 3: Player Information Hub (Session uptime, exact execution time, avatar info)
+-- 3. Player Info (Информация об игроке, аватарка, точное время запуска)
 local playerPage = addTab("Player Info")
 
 local infoCard = Instance.new("Frame")
-infoCard.Size = UDim2.new(1, 0, 0, 160)
+infoCard.Size = UDim2.new(1, 0, 0, 180)
 infoCard.BackgroundColor3 = C.bg1
 infoCard.BorderSizePixel = 0
 infoCard.LayoutOrder = 1
 infoCard.Parent = playerPage
-corner(infoCard, 8)
-stroke(infoCard, C.s1, 1)
-pad(infoCard, 14, 14, 16, 16)
+corner(infoCard, 10)
+pad(infoCard, 16, 16, 18, 18)
 
 local avatarIcon = Instance.new("ImageLabel")
-avatarIcon.Size = UDim2.new(0, 56, 0, 56)
+avatarIcon.Size = UDim2.new(0, 60, 0, 60)
 avatarIcon.BackgroundTransparency = 1
 avatarIcon.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
 avatarIcon.Parent = infoCard
-corner(avatarIcon, 28)
-stroke(avatarIcon, C.s2, 1)
+corner(avatarIcon, 30)
 
 local playerNameLbl = Instance.new("TextLabel")
-playerNameLbl.Size = UDim2.new(1, -70, 0, 20)
-playerNameLbl.Position = UDim2.new(0, 68, 0, 4)
+playerNameLbl.Size = UDim2.new(1, -75, 0, 22)
+playerNameLbl.Position = UDim2.new(0, 75, 0, 6)
 playerNameLbl.BackgroundTransparency = 1
 playerNameLbl.TextColor3 = C.t1
-playerNameLbl.Text = player.Name .. " (@" .. player.DisplayName .. ")"
+playerNameLbl.Text = player.Name
 playerNameLbl.Font = Enum.Font.GothamBold
-playerNameLbl.TextSize = 13
+playerNameLbl.TextSize = 15
 playerNameLbl.TextXAlignment = Enum.TextXAlignment.Left
 playerNameLbl.Parent = infoCard
 
 local userIdLbl = Instance.new("TextLabel")
-userIdLbl.Size = UDim2.new(1, -70, 0, 16)
-userIdLbl.Position = UDim2.new(0, 68, 0, 26)
+userIdLbl.Size = UDim2.new(1, -75, 0, 18)
+userIdLbl.Position = UDim2.new(0, 75, 0, 32)
 userIdLbl.BackgroundTransparency = 1
 userIdLbl.TextColor3 = C.t3
-userIdLbl.Text = "User ID: " .. tostring(player.UserId)
-userIdLbl.Font = Enum.Font.Gotham
-userIdLbl.TextSize = 11
+userIdLbl.Text = "ID: " .. tostring(player.UserId)
+userIdLbl.Font = Enum.Font.GothamBold
+userIdLbl.TextSize = 12
 userIdLbl.TextXAlignment = Enum.TextXAlignment.Left
 userIdLbl.Parent = infoCard
 
 local sessionTimeLbl = Instance.new("TextLabel")
-sessionTimeLbl.Size = UDim2.new(1, 0, 0, 20)
-sessionTimeLbl.Position = UDim2.new(0, 0, 0, 75)
+sessionTimeLbl.Size = UDim2.new(1, 0, 0, 22)
+sessionTimeLbl.Position = UDim2.new(0, 0, 0, 85)
 sessionTimeLbl.BackgroundTransparency = 1
 sessionTimeLbl.TextColor3 = C.t2
-sessionTimeLbl.Text = "Script Active Time: 00:00:00"
-sessionTimeLbl.Font = Enum.Font.GothamMedium
-sessionTimeLbl.TextSize = 12
+sessionTimeLbl.Text = "Active Time: 00:00:00"
+sessionTimeLbl.Font = Enum.Font.GothamBold
+sessionTimeLbl.TextSize = 13
 sessionTimeLbl.TextXAlignment = Enum.TextXAlignment.Left
 sessionTimeLbl.Parent = infoCard
 
 local killsInfoLbl = Instance.new("TextLabel")
-killsInfoLbl.Size = UDim2.new(1, 0, 0, 20)
-killsInfoLbl.Position = UDim2.new(0, 0, 0, 100)
+killsInfoLbl.Size = UDim2.new(1, 0, 0, 22)
+killsInfoLbl.Position = UDim2.new(0, 0, 0, 115)
 killsInfoLbl.BackgroundTransparency = 1
 killsInfoLbl.TextColor3 = C.t2
-killsInfoLbl.Text = "Total Session Kills: 0"
-killsInfoLbl.Font = Enum.Font.GothamMedium
-killsInfoLbl.TextSize = 12
+killsInfoLbl.Text = "Session Kills: 0"
+killsInfoLbl.Font = Enum.Font.GothamBold
+killsInfoLbl.TextSize = 13
 killsInfoLbl.TextXAlignment = Enum.TextXAlignment.Left
 killsInfoLbl.Parent = infoCard
 
--- Tab 4: Settings & UI Scaling
+-- 4. Settings
 local settingsPage = addTab("Settings")
 
 makeBoxInput(settingsPage, "Interface Scale Factor", cfg.uiScale, function(val)
@@ -657,18 +707,16 @@ makeBoxInput(settingsPage, "Interface Scale Factor", cfg.uiScale, function(val)
     end
 end, 1)
 
--- ══ CORE LOGIC LOOPS ═══════════════════════════
+-- ══ ЛОГИКА РАБОТЫ СКРИПТА ══════════════════════════════════
 
 RunService.Heartbeat:Connect(function()
-    -- Update Player Info Tab Stats live
     local elapsed = math.floor(tick() - startTime)
     local hours = math.floor(elapsed / 3600)
     local mins = math.floor((elapsed % 3600) / 60)
     local secs = elapsed % 60
-    sessionTimeLbl.Text = string.format("Script Active Time: %02d:%02d:%02d", hours, mins, secs)
-    killsInfoLbl.Text = "Total Session Kills: " .. tostring(state.killCount)
+    sessionTimeLbl.Text = string.format("Active Time: %02d:%02d:%02d", hours, mins, secs)
+    killsInfoLbl.Text = "Session Kills: " .. tostring(state.killCount)
 
-    -- Universal Utilities Loops
     if state.speedBoost and humanoid then
         humanoid.WalkSpeed = cfg.speed
     end
@@ -698,4 +746,4 @@ player.CharacterAdded:Connect(function(c)
     farmSwitch.Set(false)
 end)
 
-print("[Cake Island PRO]: UI successfully compiled and loaded.")
+print("[Clown HUB]: Loaded successfully with clean typography and modern UX.")
