@@ -44,10 +44,11 @@ local state = {
 
 -- Ультра-премиальная темная палитра без обводок
 local C = {
-    bg0   = Color3.fromRGB(12,  14,  18),
-    bg1   = Color3.fromRGB(20,  23,  29),
-    bg2   = Color3.fromRGB(29,  33,  41),
-    bg3   = Color3.fromRGB(43,  48,  58),
+    bg0   = Color3.fromRGB(9,   11,  15),
+    bg1   = Color3.fromRGB(18,  21,  27),
+    bg2   = Color3.fromRGB(27,  31,  39),
+    bg3   = Color3.fromRGB(40,  46,  56),
+    panel = Color3.fromRGB(15,  18,  24),
     t1    = Color3.fromRGB(255, 255, 255),
     t2    = Color3.fromRGB(180, 180, 195),
     t3    = Color3.fromRGB(115, 115, 130),
@@ -67,18 +68,41 @@ local function corner(p, r)
     return c 
 end
 
+local function gradient(p, colorA, colorB, rotation)
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new(colorA, colorB)
+    g.Rotation = rotation or 90
+    g.Parent = p
+    return g
+end
+
 -- Roblox не имеет встроенного UIShadow, поэтому используем отдельный слой позади элемента.
 local function addShadow(p, transparency)
     local shadow = Instance.new("Frame")
     shadow.Name = "UIShadow"
     shadow.Size = UDim2.new(1, 8, 1, 8)
-    shadow.Position = UDim2.new(0, -4, 0, 5)
+    shadow.AnchorPoint = p.AnchorPoint
     shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     shadow.BackgroundTransparency = transparency or 0.85
     shadow.BorderSizePixel = 0
-    shadow.ZIndex = math.max(p.ZIndex - 1, 0)
-    shadow.Parent = p
+    p.ZIndex = math.max(p.ZIndex, 1)
+    shadow.ZIndex = p.ZIndex - 1
+    shadow.Parent = p.Parent
     corner(shadow, 12)
+
+    local function syncShadow()
+        shadow.Position = UDim2.new(
+            p.Position.X.Scale,
+            p.Position.X.Offset - 4,
+            p.Position.Y.Scale,
+            p.Position.Y.Offset + 5
+        )
+        shadow.Size = UDim2.new(1, 8, 1, 8)
+    end
+
+    p:GetPropertyChangedSignal("Position"):Connect(syncShadow)
+    p:GetPropertyChangedSignal("Size"):Connect(syncShadow)
+    syncShadow()
     return shadow
 end
 
@@ -185,6 +209,7 @@ mainFrame.Active = true
 mainFrame.Parent = gui
 corner(mainFrame, 12)
 addShadow(mainFrame, 0.6)
+gradient(mainFrame, C.bg0, C.panel, 25)
 makeDraggable(mainFrame)
 
 local windowLimit = Instance.new("UISizeConstraint")
@@ -199,6 +224,7 @@ sidebar.BackgroundColor3 = C.bg1
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 corner(sidebar, 12)
+gradient(sidebar, C.bg1, C.panel, 90)
 
 -- Убираем лишний угол у сайдбара
 local sidebarFix = Instance.new("Frame")
@@ -263,6 +289,13 @@ topBar.Size = UDim2.new(1, 0, 0, 68)
 topBar.BackgroundTransparency = 1
 topBar.Parent = contentArea
 
+local topDivider = Instance.new("Frame")
+topDivider.Size = UDim2.new(1, -40, 0, 1)
+topDivider.Position = UDim2.new(0, 20, 1, -1)
+topDivider.BackgroundColor3 = C.bg2
+topDivider.BorderSizePixel = 0
+topDivider.Parent = topBar
+
 local currentTabLbl = Instance.new("TextLabel")
 currentTabLbl.Size = UDim2.new(1, -90, 1, 0)
 currentTabLbl.Position = UDim2.new(0, 20, 0, 0)
@@ -285,6 +318,16 @@ statusLbl.Font = Enum.Font.GothamMedium
 statusLbl.TextSize = 10
 statusLbl.TextXAlignment = Enum.TextXAlignment.Left
 statusLbl.Parent = topBar
+
+local statusDot = Instance.new("Frame")
+statusDot.Size = UDim2.new(0, 6, 0, 6)
+statusDot.Position = UDim2.new(0, 20, 0, 48)
+statusDot.BackgroundColor3 = C.t3
+statusDot.BorderSizePixel = 0
+statusDot.Parent = topBar
+corner(statusDot, 3)
+statusLbl.Position = UDim2.new(0, 32, 0, 43)
+statusLbl.Size = UDim2.new(1, -52, 0, 16)
 
 local accentLine = Instance.new("Frame")
 accentLine.Size = UDim2.new(0, 34, 0, 3)
@@ -387,6 +430,15 @@ local function addTab(name)
     btn.Parent = navList
     corner(btn, 8)
 
+    local activeBar = Instance.new("Frame")
+    activeBar.Size = UDim2.new(0, 3, 0, 20)
+    activeBar.Position = UDim2.new(0, 0, 0.5, -10)
+    activeBar.BackgroundColor3 = C.accent
+    activeBar.BorderSizePixel = 0
+    activeBar.Visible = false
+    activeBar.Parent = btn
+    corner(activeBar, 2)
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -20, 1, 0)
     lbl.Position = UDim2.new(0, 14, 0, 0)
@@ -412,19 +464,22 @@ local function addTab(name)
     btn.MouseButton1Click:Connect(function()
         for _, t in pairs(tabs) do
             t.page.Visible = false
+            t.activeBar.Visible = false
             TweenService:Create(t.btn, tw, {BackgroundColor3 = C.bg1}):Play()
             t.lbl.TextColor3 = C.t2
         end
         page.Visible = true
+        activeBar.Visible = true
         TweenService:Create(btn, tw, {BackgroundColor3 = C.bg3}):Play()
         lbl.TextColor3 = C.t1
         currentTabLbl.Text = name
     end)
 
-    table.insert(tabs, {name = name, btn = btn, page = page, lbl = lbl})
+    table.insert(tabs, {name = name, btn = btn, page = page, lbl = lbl, activeBar = activeBar})
     if #tabs == 1 then
         page.Visible = true
         btn.BackgroundColor3 = C.bg3
+        activeBar.Visible = true
         lbl.TextColor3 = C.t1
         currentTabLbl.Text = name
     end
@@ -442,6 +497,7 @@ local function makeSwitch(parent, text, initial, callback, lo)
     wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
     corner(wrap, 10)
+    gradient(wrap, C.bg1, C.panel, 0)
 
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -70, 1, 0)
@@ -476,6 +532,13 @@ local function makeSwitch(parent, text, initial, callback, lo)
     btn.Text = ""
     btn.Parent = wrap
 
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(wrap, tw, {BackgroundColor3 = C.bg2}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(wrap, tw, {BackgroundColor3 = C.bg1}):Play()
+    end)
+
     local active = initial
     btn.MouseButton1Click:Connect(function()
         active = not active
@@ -507,6 +570,7 @@ local function makeBoxInput(parent, label, default, callback, lo)
     wrap.LayoutOrder = lo or 0
     wrap.Parent = parent
     corner(wrap, 10)
+    gradient(wrap, C.bg1, C.panel, 0)
     pad(wrap, 10, 10, 16, 16)
 
     local lbf = Instance.new("TextLabel")
@@ -558,6 +622,7 @@ local function makeScrollDropdown(parent, label, list, callback, lo)
     wrap.ZIndex = 10
     wrap.Parent = parent
     corner(wrap, 10)
+    gradient(wrap, C.bg1, C.panel, 0)
     pad(wrap, 10, 10, 16, 16)
 
     local lbf = Instance.new("TextLabel")
@@ -664,6 +729,7 @@ local farmSwitch = makeSwitch(farmPage, "Auto Farm Mobs", false, function(on)
     state.autoFarm = on
     statusLbl.Text = on and "ACTIVE  •  AUTO FARM" or "READY  •  CAKE ISLAND"
     statusLbl.TextColor3 = on and C.grn or C.t3
+    statusDot.BackgroundColor3 = on and C.grn or C.t3
     if on then
         state.killCount = 0
         startTime = tick()
